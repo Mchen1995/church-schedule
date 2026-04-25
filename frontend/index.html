@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>教会直播排班信息收集</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Noto Sans SC', sans-serif; }
+        body { background: #f5f7fa; }
+        .glass { background: rgba(255,255,255,0.85); backdrop-filter: blur(12px); }
+        .date-select-yes { background: #dcfce7; border-color: #22c55e; color: #166534; }
+        .date-select-maybe { background: #fef3c7; border-color: #f59e0b; color: #92400e; }
+        .date-select-no { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        .pulse-dot { animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
+        .slide-in { animation: slideIn 0.3s ease-out; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .toast { animation: toastIn 0.3s ease-out, toastOut 0.3s ease-in 2.7s forwards; }
+        @keyframes toastIn { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes toastOut { to { transform: translateX(100%); opacity: 0; } }
+        .combo-box { position: relative; }
+        .combo-box input { width: 100%; }
+        .combo-box .dropdown { position: absolute; top: 100%; left: 0; right: 0; background: white; border: 1px solid #e5e7eb; border-radius: 0.75rem; margin-top: 4px; max-height: 200px; overflow-y: auto; z-index: 50; box-shadow: 0 10px 25px rgba(0,0,0,0.1); display: none; }
+        .combo-box .dropdown.show { display: block; }
+        .combo-box .dropdown-item { padding: 10px 16px; cursor: pointer; font-size: 14px; color: #374151; }
+        .combo-box .dropdown-item:hover { background: #f3f4f6; }
+        .combo-box .dropdown-item:first-child { border-radius: 0.75rem 0.75rem 0 0; }
+        .combo-box .dropdown-item:last-child { border-radius: 0 0 0.75rem 0.75rem; }
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- 顶部导航 -->
+    <nav class="glass sticky top-0 z-50 border-b border-gray-200">
+        <div class="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">⛪</div>
+                <div>
+                    <h1 class="font-bold text-gray-900 text-lg leading-tight">直播排班信息收集</h1>
+                    <p class="text-xs text-gray-500" id="monthDisplay">加载中...</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-2">
+                <div id="connectionStatus" class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium">
+                    <span class="w-2 h-2 rounded-full bg-green-500 pulse-dot"></span>
+                    实时同步中
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <!-- 填报表单 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden slide-in">
+            <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+                <h2 class="font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                    填写你的时间
+                </h2>
+                <p class="text-sm text-gray-500 mt-1">选择姓名后，系统会自动显示你可担任的岗位</p>
+            </div>
+
+            <form id="scheduleForm" class="p-5 space-y-5">
+                <!-- 姓名（下拉框 + 可手动输入） -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">姓名 <span class="text-red-500">*</span></label>
+                    <div class="combo-box" id="nameCombo">
+                        <input type="text" id="nameInput" required placeholder="选择或输入姓名" autocomplete="off"
+                            class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm">
+                        <div class="dropdown" id="nameDropdown"></div>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1">点击输入框查看名单，也可直接输入新名字</p>
+                </div>
+
+                <!-- 可担任岗位（只读展示） -->
+                <div id="rolesDisplay" class="hidden">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">你可担任的岗位</label>
+                    <div id="rolesTags" class="flex flex-wrap gap-2"></div>
+                </div>
+
+                <!-- 联系电话 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">联系电话</label>
+                    <input type="tel" id="phone" placeholder="选填，方便联系" 
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm">
+                </div>
+
+                <!-- 日期可用性 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">
+                        各周六可用性 <span class="text-red-500">*</span>
+                        <span class="text-xs font-normal text-gray-400 ml-1">每个日期必选一项</span>
+                    </label>
+                    <div id="dateGrid" class="space-y-2.5">
+                        <!-- 动态生成 -->
+                    </div>
+                </div>
+
+                <!-- 备注 -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">备注</label>
+                    <textarea id="notes" rows="2" placeholder="如有特殊情况请说明" 
+                        class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm resize-none"></textarea>
+                </div>
+
+                <!-- 提交按钮 -->
+                <button type="submit" id="submitBtn"
+                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-blue-200 active:scale-[0.98] flex items-center justify-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+                    提交填报
+                </button>
+            </form>
+        </div>
+
+        <!-- 实时结果看板 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden slide-in" style="animation-delay: 0.1s">
+            <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50 flex items-center justify-between">
+                <h2 class="font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0z"/></svg>
+                    填报结果实时看板
+                    <span id="submissionCount" class="ml-1 text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full">0人</span>
+                </h2>
+                <button onclick="refreshData()" class="text-sm text-emerald-600 hover:text-emerald-700 font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-emerald-50 transition">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                    刷新
+                </button>
+            </div>
+
+            <div class="p-5">
+                <!-- 汇总统计 -->
+                <div id="summaryCards" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
+                    <!-- 动态生成 -->
+                </div>
+
+                <!-- 详细表格 -->
+                <div class="overflow-x-auto -mx-2">
+                    <table class="w-full text-sm">
+                        <thead>
+                            <tr class="text-left text-gray-500 border-b border-gray-100">
+                                <th class="pb-3 pl-2 font-medium">姓名</th>
+                                <th class="pb-3 font-medium">岗位</th>
+                                <th class="pb-3 font-medium">5/2</th>
+                                <th class="pb-3 font-medium">5/9</th>
+                                <th class="pb-3 font-medium">5/16</th>
+                                <th class="pb-3 font-medium">5/23</th>
+                                <th class="pb-3 font-medium">5/30</th>
+                                <th class="pb-3 pr-2 font-medium text-right">操作</th>
+                            </tr>
+                        </thead>
+                        <tbody id="submissionsTable">
+                            <!-- 动态生成 -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <div id="emptyState" class="hidden text-center py-10">
+                    <div class="text-4xl mb-2">📋</div>
+                    <p class="text-gray-400 text-sm">暂无人填报，你是第一个！</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- 按日期查看 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden slide-in" style="animation-delay: 0.2s">
+            <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-amber-50 to-orange-50">
+                <h2 class="font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                    按日期查看可用人员
+                </h2>
+            </div>
+            <div class="p-5">
+                <div id="dateView" class="space-y-3">
+                    <!-- 动态生成 -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast 通知容器 -->
+    <div id="toastContainer" class="fixed top-20 right-4 z-50 space-y-2 pointer-events-none"></div>
+
+    <script>
+    // ==================== 配置 ====================
+    const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
+        ? 'http://localhost:5000' 
+        : window.location.origin;
+
+    // ==================== 状态管理 ====================
+    let config = { memberNames: [], memberRoles: {}, roleLabels: {}, scheduleDates: [] };
+    let submissions = [];
+    let availability = {}; // { "2026-05-02": "yes" | "maybe" | "no" }
+    let eventSource = null;
+
+    const STATUS_LABELS = { yes: '可以来', maybe: '不确定', no: '不能来' };
+    const STATUS_COLORS = { yes: 'text-green-700 bg-green-50 border-green-200', maybe: 'text-amber-700 bg-amber-50 border-amber-200', no: 'text-red-700 bg-red-50 border-red-200' };
+    const STATUS_DOTS = { yes: '🟢', maybe: '🟡', no: '🔴' };
+
+    // ==================== 初始化 ====================
+    document.addEventListener('DOMContentLoaded', async () => {
+        await loadConfig();
+        initNameCombo();
+        renderDateGrid();
+        loadSubmissions();
+        initSSE();
+        document.getElementById('scheduleForm').addEventListener('submit', handleSubmit);
+    });
+
+    // ==================== 加载配置 ====================
+    async function loadConfig() {
+        try {
+            const res = await fetch(`${API_BASE}/api/config`);
+            const data = await res.json();
+            if (data.success) {
+                config = data;
+                document.getElementById('monthDisplay').textContent = 
+                    `${data.month}月 · 共${data.scheduleDates.length}个周六需排班`;
+            }
+        } catch (e) {
+            console.error('获取配置失败', e);
+            showToast('获取配置失败', 'error');
+        }
+    }
+
+    // ==================== 姓名下拉框 ====================
+    function initNameCombo() {
+        const input = document.getElementById('nameInput');
+        const dropdown = document.getElementById('nameDropdown');
+
+        input.addEventListener('focus', () => showDropdown(''));
+        input.addEventListener('input', (e) => showDropdown(e.target.value));
+
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('#nameCombo')) {
+                dropdown.classList.remove('show');
+            }
+        });
+
+        function showDropdown(filter) {
+            const filtered = config.memberNames.filter(n => n.includes(filter));
+            if (filtered.length === 0 && filter) {
+                dropdown.innerHTML = `<div class="dropdown-item text-gray-400">按"${filter}"新增</div>`;
+            } else {
+                dropdown.innerHTML = filtered.map(name => 
+                    `<div class="dropdown-item" data-name="${name}">${name}</div>`
+                ).join('');
+            }
+            dropdown.classList.add('show');
+
+            dropdown.querySelectorAll('.dropdown-item').forEach(item => {
+                item.addEventListener('click', () => {
+                    input.value = item.dataset.name || filter;
+                    dropdown.classList.remove('show');
+                    updateRolesDisplay(input.value);
+                });
+            });
+        }
+
+        input.addEventListener('change', () => updateRolesDisplay(input.value));
+    }
+
+    function updateRolesDisplay(name) {
+        const roles = config.memberRoles[name] || ['backup'];
+        const display = document.getElementById('rolesDisplay');
+        const tags = document.getElementById('rolesTags');
+
+        if (name) {
+            display.classList.remove('hidden');
+            tags.innerHTML = roles.map(r => {
+                const label = config.roleLabels[r] || r;
+                const colors = {
+                    director: 'bg-purple-100 text-purple-700',
+                    fixed_camera: 'bg-blue-100 text-blue-700',
+                    mobile_camera: 'bg-orange-100 text-orange-700',
+                    backup: 'bg-gray-100 text-gray-600'
+                };
+                return `<span class="inline-block px-3 py-1 rounded-lg text-sm font-medium ${colors[r] || 'bg-gray-100'}">${label}</span>`;
+            }).join('');
+        } else {
+            display.classList.add('hidden');
+        }
+    }
+
+    // ==================== 日期选择 ====================
+    function renderDateGrid() {
+        const container = document.getElementById('dateGrid');
+        container.innerHTML = config.scheduleDates.map(date => {
+            const d = new Date(date + 'T00:00:00');
+            const dayStr = `${d.getMonth() + 1}月${d.getDate()}日`;
+            const dayName = '周' + ['日','一','二','三','四','五','六'][d.getDay()];
+            const current = availability[date] || '';
+
+            return `
+                <div class="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-100 bg-gray-50/50">
+                    <div class="flex-shrink-0 w-20">
+                        <div class="font-bold text-gray-800">${dayStr}</div>
+                        <div class="text-xs text-gray-400">${dayName}</div>
+                    </div>
+                    <select onchange="setAvailability('${date}', this.value)" 
+                        class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white ${current ? 'date-select-' + current : ''}">
+                        <option value="" ${!current ? 'selected' : ''}>请选择...</option>
+                        <option value="yes" ${current === 'yes' ? 'selected' : ''}>✓ 可以来</option>
+                        <option value="maybe" ${current === 'maybe' ? 'selected' : ''}>? 不确定</option>
+                        <option value="no" ${current === 'no' ? 'selected' : ''}>✗ 不能来</option>
+                    </select>
+                </div>
+            `;
+        }).join('');
+    }
+
+    function setAvailability(date, value) {
+        if (value) {
+            availability[date] = value;
+        } else {
+            delete availability[date];
+        }
+        renderDateGrid();
+    }
+
+    // ==================== 表单提交 ====================
+    async function handleSubmit(e) {
+        e.preventDefault();
+
+        const name = document.getElementById('nameInput').value.trim();
+        const phone = document.getElementById('phone').value.trim();
+        const notes = document.getElementById('notes').value.trim();
+
+        if (!name) { showToast('请填写姓名', 'error'); return; }
+
+        // 检查是否所有日期都已选择
+        const missing = config.scheduleDates.filter(d => !availability[d]);
+        if (missing.length > 0) {
+            showToast(`还有 ${missing.length} 个日期未选择，请补全`, 'error');
+            return;
+        }
+
+        const btn = document.getElementById('submitBtn');
+        btn.disabled = true;
+        btn.innerHTML = `<svg class="animate-spin w-5 h-5" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg> 提交中...`;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/submissions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, phone, availability, notes })
+            });
+            const data = await res.json();
+
+            if (data.success) {
+                showToast(data.message, 'success');
+                document.getElementById('scheduleForm').reset();
+                availability = {};
+                document.getElementById('rolesDisplay').classList.add('hidden');
+                renderDateGrid();
+                loadSubmissions();
+            } else {
+                showToast(data.error || '提交失败', 'error');
+            }
+        } catch (e) {
+            showToast('网络错误，请重试', 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = `<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg> 提交填报`;
+        }
+    }
+
+    // ==================== 数据加载 ====================
+    async function loadSubmissions() {
+        try {
+            const res = await fetch(`${API_BASE}/api/submissions`);
+            const data = await res.json();
+            if (data.success) {
+                submissions = data.submissions;
+                renderSubmissions();
+                renderSummary();
+                renderDateView();
+            }
+        } catch (e) {
+            console.error('加载数据失败', e);
+        }
+    }
+
+    function renderSubmissions() {
+        const tbody = document.getElementById('submissionsTable');
+        const empty = document.getElementById('emptyState');
+        const count = document.getElementById('submissionCount');
+
+        count.textContent = `${submissions.length}人`;
+
+        if (submissions.length === 0) {
+            tbody.innerHTML = '';
+            empty.classList.remove('hidden');
+            return;
+        }
+
+        empty.classList.add('hidden');
+
+        tbody.innerHTML = submissions.map((s, idx) => {
+            const roles = s.roles.map(r => {
+                const label = config.roleLabels[r] || r;
+                const colors = {
+                    director: 'bg-purple-100 text-purple-700',
+                    fixed_camera: 'bg-blue-100 text-blue-700',
+                    mobile_camera: 'bg-orange-100 text-orange-700',
+                    backup: 'bg-gray-100 text-gray-600'
+                };
+                return `<span class="inline-block px-1.5 py-0.5 rounded text-xs font-medium ${colors[r] || 'bg-gray-100'}">${label}</span>`;
+            }).join('');
+
+            const dateCells = config.scheduleDates.map(date => {
+                const status = s.availability[date] || '';
+                if (!status) return '<td class="py-3 text-gray-300">-</td>';
+                return `<td class="py-3"><span class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium ${STATUS_COLORS[status]}">${STATUS_DOTS[status]} ${STATUS_LABELS[status]}</span></td>`;
+            }).join('');
+
+            return `
+                <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition slide-in" style="animation-delay: ${idx * 0.05}s">
+                    <td class="py-3 pl-2">
+                        <div class="font-medium text-gray-900">${s.name}</div>
+                        ${s.phone ? `<div class="text-xs text-gray-400">${s.phone}</div>` : ''}
+                    </td>
+                    <td class="py-3">${roles}</td>
+                    ${dateCells}
+                    <td class="py-3 pr-2 text-right">
+                        <button onclick="deleteSubmission('${s.id}', '${s.name}')" class="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded hover:bg-red-50 transition">删除</button>
+                    </td>
+                </tr>
+            `;
+        }).join('');
+    }
+
+    function renderSummary() {
+        const container = document.getElementById('summaryCards');
+
+        const stats = {
+            total: submissions.length,
+            director: submissions.filter(s => s.roles.includes('director')).length,
+            fixed: submissions.filter(s => s.roles.includes('fixed_camera')).length,
+            mobile: submissions.filter(s => s.roles.includes('mobile_camera')).length
+        };
+
+        const cards = [
+            { label: '已填报人数', value: stats.total, color: 'bg-blue-500', icon: '👥' },
+            { label: '可导播', value: stats.director, color: 'bg-purple-500', icon: '🎛️' },
+            { label: '可固定机位', value: stats.fixed, color: 'bg-blue-500', icon: '📹' },
+            { label: '可移动机位', value: stats.mobile, color: 'bg-orange-500', icon: '🎥' }
+        ];
+
+        container.innerHTML = cards.map(c => `
+            <div class="bg-white border border-gray-100 rounded-xl p-3 flex items-center gap-3">
+                <div class="w-10 h-10 ${c.color} rounded-lg flex items-center justify-center text-white text-lg shadow-sm">${c.icon}</div>
+                <div>
+                    <div class="text-xl font-bold text-gray-900">${c.value}</div>
+                    <div class="text-xs text-gray-500">${c.label}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function renderDateView() {
+        const container = document.getElementById('dateView');
+
+        container.innerHTML = config.scheduleDates.map(date => {
+            const d = new Date(date + 'T00:00:00');
+            const dayStr = `${d.getMonth() + 1}月${d.getDate()}日`;
+            const dayName = '周' + ['日','一','二','三','四','五','六'][d.getDay()];
+
+            const yesPeople = submissions.filter(s => s.availability[date] === 'yes');
+            const maybePeople = submissions.filter(s => s.availability[date] === 'maybe');
+            const noPeople = submissions.filter(s => s.availability[date] === 'no');
+
+            const renderPeople = (people) => people.map(s => {
+                const roles = s.roles.map(r => {
+                    const map = {director:'导', fixed_camera:'固', mobile_camera:'移', backup:'替'};
+                    return map[r] || r[0];
+                }).join('');
+                return `<span class="inline-flex items-center px-2 py-0.5 rounded bg-white border border-gray-200 text-gray-700 text-xs mr-1.5 mb-1.5">${s.name}(${roles})</span>`;
+            }).join('');
+
+            return `
+                <div class="border border-gray-100 rounded-xl p-4 hover:shadow-sm transition">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="font-bold text-gray-800">${dayStr}</span>
+                        <span class="text-xs text-gray-400">${dayName}</span>
+                        <span class="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">${yesPeople.length}人可来</span>
+                        ${maybePeople.length > 0 ? `<span class="text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full">${maybePeople.length}人不确定</span>` : ''}
+                    </div>
+
+                    ${yesPeople.length > 0 ? `
+                        <div class="mb-2">
+                            <span class="text-xs text-green-600 font-medium mr-1">🟢 可以来:</span>
+                            <div class="flex flex-wrap gap-1 mt-1">${renderPeople(yesPeople)}</div>
+                        </div>
+                    ` : ''}
+
+                    ${maybePeople.length > 0 ? `
+                        <div class="mb-2">
+                            <span class="text-xs text-amber-600 font-medium mr-1">🟡 不确定:</span>
+                            <div class="flex flex-wrap gap-1 mt-1">${renderPeople(maybePeople)}</div>
+                        </div>
+                    ` : ''}
+
+                    ${noPeople.length > 0 ? `
+                        <div class="pt-2 border-t border-gray-50">
+                            <span class="text-xs text-red-400 font-medium mr-1">🔴 不能来:</span>
+                            <div class="flex flex-wrap gap-1 mt-1">
+                                ${noPeople.map(s => `<span class="inline-flex items-center px-2 py-0.5 rounded bg-red-50 text-red-400 text-xs mr-1.5 mb-1.5 line-through">${s.name}</span>`).join('')}
+                            </div>
+                        </div>
+                    ` : ''}
+                </div>
+            `;
+        }).join('');
+    }
+
+    // ==================== 删除功能 ====================
+    async function deleteSubmission(id, name) {
+        if (!confirm(`确定要删除 ${name} 的填报记录吗？`)) return;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/submissions/${id}`, { method: 'DELETE' });
+            const data = await res.json();
+            if (data.success) {
+                showToast('删除成功', 'success');
+                loadSubmissions();
+            } else {
+                showToast(data.error || '删除失败', 'error');
+            }
+        } catch (e) {
+            showToast('网络错误', 'error');
+        }
+    }
+
+    // ==================== SSE 实时同步 ====================
+    function initSSE() {
+        if (eventSource) eventSource.close();
+
+        eventSource = new EventSource(`${API_BASE}/api/stream`);
+
+        eventSource.onmessage = (e) => {
+            const data = JSON.parse(e.data);
+            if (data.type === 'heartbeat') return;
+
+            loadSubmissions();
+
+            if (data.type === 'update') {
+                showToast('有人更新了填报', 'info');
+            } else if (data.type === 'delete') {
+                showToast('有人删除了填报', 'info');
+            }
+        };
+
+        eventSource.onerror = () => {
+            document.getElementById('connectionStatus').innerHTML = `<span class="w-2 h-2 rounded-full bg-gray-400"></span>同步断开`;
+            document.getElementById('connectionStatus').className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 text-xs font-medium';
+            setTimeout(initSSE, 5000);
+        };
+
+        eventSource.onopen = () => {
+            document.getElementById('connectionStatus').innerHTML = `<span class="w-2 h-2 rounded-full bg-green-500 pulse-dot"></span>实时同步中`;
+            document.getElementById('connectionStatus').className = 'flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-green-100 text-green-700 text-xs font-medium';
+        };
+    }
+
+    function refreshData() {
+        loadSubmissions();
+        showToast('数据已刷新', 'success');
+    }
+
+    // ==================== Toast 通知 ====================
+    function showToast(message, type = 'info') {
+        const container = document.getElementById('toastContainer');
+        const colors = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };
+        const icons = { success: '✓', error: '✗', info: 'ℹ' };
+
+        const toast = document.createElement('div');
+        toast.className = `toast ${colors[type]} text-white px-4 py-3 rounded-xl shadow-lg flex items-center gap-2 pointer-events-auto min-w-[200px]`;
+        toast.innerHTML = `<span class="font-bold">${icons[type]}</span> <span class="text-sm">${message}</span>`;
+
+        container.appendChild(toast);
+        setTimeout(() => toast.remove(), 3000);
+    }
+    </script>
+</body>
+</html>

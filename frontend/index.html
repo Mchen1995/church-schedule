@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>教会直播排班信息收集</title>
+    <title>导播组排班信息收集</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
     <style>
@@ -32,6 +32,7 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
+<base target="_blank">
 </head>
 <body class="min-h-screen">
     <!-- 顶部导航 -->
@@ -40,7 +41,7 @@
             <div class="flex items-center gap-3">
                 <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white font-bold text-lg">⛪</div>
                 <div>
-                    <h1 class="font-bold text-gray-900 text-lg leading-tight">直播排班信息收集</h1>
+                    <h1 class="font-bold text-gray-900 text-lg leading-tight">导播组排班信息收集</h1>
                     <p class="text-xs text-gray-500" id="monthDisplay">加载中...</p>
                 </div>
             </div>
@@ -59,9 +60,9 @@
             <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
                 <h2 class="font-bold text-gray-800 flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    填写你的时间
+                    各位同事积极报名~
                 </h2>
-                <p class="text-sm text-gray-500 mt-1">选择姓名后，系统会自动显示你可担任的岗位</p>
+                <p class="text-sm text-gray-500 mt-1">请选择姓名后填报意向</p>
             </div>
 
             <form id="scheduleForm" class="p-5 space-y-5">
@@ -76,24 +77,11 @@
                     <p class="text-xs text-gray-400 mt-1">点击输入框查看名单，也可直接输入新名字</p>
                 </div>
 
-                <!-- 可担任岗位（只读展示） -->
-                <div id="rolesDisplay" class="hidden">
-                    <label class="block text-sm font-medium text-gray-700 mb-2">你可担任的岗位</label>
-                    <div id="rolesTags" class="flex flex-wrap gap-2"></div>
-                </div>
-
-                <!-- 联系电话 -->
-                <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1.5">联系电话</label>
-                    <input type="tel" id="phone" placeholder="选填，方便联系" 
-                        class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm">
-                </div>
-
                 <!-- 日期可用性 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
-                        各周六可用性 <span class="text-red-500">*</span>
-                        <span class="text-xs font-normal text-gray-400 ml-1">每个日期必选一项</span>
+                        ↓ 以下是本月需要直播的场次 ↓ <span class="text-red-500">*</span>
+                        <span class="text-xs font-normal text-gray-400 ml-1">默认不确定，请按需修改</span>
                     </label>
                     <div id="dateGrid" class="space-y-2.5">
                         <!-- 动态生成 -->
@@ -103,7 +91,7 @@
                 <!-- 备注 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">备注</label>
-                    <textarea id="notes" rows="2" placeholder="如有特殊情况请说明" 
+                    <textarea id="notes" rows="2" placeholder="如有特殊情况请说明"
                         class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm resize-none"></textarea>
                 </div>
 
@@ -185,8 +173,8 @@
 
     <script>
     // ==================== 配置 ====================
-    const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1') 
-        ? 'http://localhost:5000' 
+    const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
+        ? 'http://localhost:5000'
         : window.location.origin;
 
     // ==================== 状态管理 ====================
@@ -203,6 +191,8 @@
     document.addEventListener('DOMContentLoaded', async () => {
         await loadConfig();
         initNameCombo();
+        // 默认所有日期为 "maybe"
+        config.scheduleDates.forEach(d => availability[d] = 'maybe');
         renderDateGrid();
         loadSubmissions();
         initSSE();
@@ -216,7 +206,7 @@
             const data = await res.json();
             if (data.success) {
                 config = data;
-                document.getElementById('monthDisplay').textContent = 
+                document.getElementById('monthDisplay').textContent =
                     `${data.month}月 · 共${data.scheduleDates.length}个周六需排班`;
             }
         } catch (e) {
@@ -244,7 +234,7 @@
             if (filtered.length === 0 && filter) {
                 dropdown.innerHTML = `<div class="dropdown-item text-gray-400">按"${filter}"新增</div>`;
             } else {
-                dropdown.innerHTML = filtered.map(name => 
+                dropdown.innerHTML = filtered.map(name =>
                     `<div class="dropdown-item" data-name="${name}">${name}</div>`
                 ).join('');
             }
@@ -254,33 +244,8 @@
                 item.addEventListener('click', () => {
                     input.value = item.dataset.name || filter;
                     dropdown.classList.remove('show');
-                    updateRolesDisplay(input.value);
                 });
             });
-        }
-
-        input.addEventListener('change', () => updateRolesDisplay(input.value));
-    }
-
-    function updateRolesDisplay(name) {
-        const roles = config.memberRoles[name] || ['backup'];
-        const display = document.getElementById('rolesDisplay');
-        const tags = document.getElementById('rolesTags');
-
-        if (name) {
-            display.classList.remove('hidden');
-            tags.innerHTML = roles.map(r => {
-                const label = config.roleLabels[r] || r;
-                const colors = {
-                    director: 'bg-purple-100 text-purple-700',
-                    fixed_camera: 'bg-blue-100 text-blue-700',
-                    mobile_camera: 'bg-orange-100 text-orange-700',
-                    backup: 'bg-gray-100 text-gray-600'
-                };
-                return `<span class="inline-block px-3 py-1 rounded-lg text-sm font-medium ${colors[r] || 'bg-gray-100'}">${label}</span>`;
-            }).join('');
-        } else {
-            display.classList.add('hidden');
         }
     }
 
@@ -299,9 +264,8 @@
                         <div class="font-bold text-gray-800">${dayStr}</div>
                         <div class="text-xs text-gray-400">${dayName}</div>
                     </div>
-                    <select onchange="setAvailability('${date}', this.value)" 
+                    <select onchange="setAvailability('${date}', this.value)"
                         class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white ${current ? 'date-select-' + current : ''}">
-                        <option value="" ${!current ? 'selected' : ''}>请选择...</option>
                         <option value="yes" ${current === 'yes' ? 'selected' : ''}>✓ 可以来</option>
                         <option value="maybe" ${current === 'maybe' ? 'selected' : ''}>? 不确定</option>
                         <option value="no" ${current === 'no' ? 'selected' : ''}>✗ 不能来</option>
@@ -312,11 +276,7 @@
     }
 
     function setAvailability(date, value) {
-        if (value) {
-            availability[date] = value;
-        } else {
-            delete availability[date];
-        }
+        availability[date] = value;
         renderDateGrid();
     }
 
@@ -325,17 +285,9 @@
         e.preventDefault();
 
         const name = document.getElementById('nameInput').value.trim();
-        const phone = document.getElementById('phone').value.trim();
         const notes = document.getElementById('notes').value.trim();
 
         if (!name) { showToast('请填写姓名', 'error'); return; }
-
-        // 检查是否所有日期都已选择
-        const missing = config.scheduleDates.filter(d => !availability[d]);
-        if (missing.length > 0) {
-            showToast(`还有 ${missing.length} 个日期未选择，请补全`, 'error');
-            return;
-        }
 
         const btn = document.getElementById('submitBtn');
         btn.disabled = true;
@@ -345,7 +297,7 @@
             const res = await fetch(`${API_BASE}/api/submissions`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, phone, availability, notes })
+                body: JSON.stringify({ name, availability, notes })
             });
             const data = await res.json();
 
@@ -353,7 +305,7 @@
                 showToast(data.message, 'success');
                 document.getElementById('scheduleForm').reset();
                 availability = {};
-                document.getElementById('rolesDisplay').classList.add('hidden');
+                config.scheduleDates.forEach(d => availability[d] = 'maybe');
                 renderDateGrid();
                 loadSubmissions();
             } else {
@@ -420,7 +372,6 @@
                 <tr class="border-b border-gray-50 hover:bg-gray-50/50 transition slide-in" style="animation-delay: ${idx * 0.05}s">
                     <td class="py-3 pl-2">
                         <div class="font-medium text-gray-900">${s.name}</div>
-                        ${s.phone ? `<div class="text-xs text-gray-400">${s.phone}</div>` : ''}
                     </td>
                     <td class="py-3">${roles}</td>
                     ${dateCells}

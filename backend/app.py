@@ -30,20 +30,20 @@ MEMBER_NAMES = [
 MEMBER_ROLES = {
     "白老师":   ["director", "fixed_camera", "mobile_camera"],
     "陈每文":   ["director", "fixed_camera", "mobile_camera"],
-    "采莲":     ["fixed_camera", "mobile_camera"],
-    "海妹":     ["fixed_camera", "mobile_camera"],
-    "嘉玲":     ["fixed_camera", "mobile_camera"],
-    "丁主任":   ["director", "fixed_camera"],
-    "屿璠":     ["fixed_camera", "mobile_camera"],
+    "采莲":     ["director", "fixed_camera", "mobile_camera"],
+    "海妹":     ["director", "fixed_camera", "mobile_camera"],
+    "嘉玲":     ["director", "fixed_camera", "mobile_camera"],
+    "丁主任":   ["fixed_camera"],
+    "屿璠":     ["director", "fixed_camera", "mobile_camera"],
     "永乐":     ["fixed_camera", "mobile_camera"],
-    "明壹":     ["fixed_camera", "mobile_camera"],
-    "永元":     ["fixed_camera", "mobile_camera"],
-    "康磊":     ["fixed_camera", "mobile_camera"],
+    "明壹":     ["director", "fixed_camera", "mobile_camera"],
+    "永元":     ["fixed_camera"],
+    "康磊":     ["director", "fixed_camera", "mobile_camera"],
     "林莹":     ["fixed_camera", "mobile_camera"],
     "赛鸿":     ["fixed_camera", "mobile_camera"],
-    "嘉河":     ["fixed_camera", "mobile_camera"],
-    "淦琴":     ["fixed_camera", "mobile_camera"],
-    "禹豪":     ["fixed_camera", "mobile_camera"],
+    "嘉河":     ["director", "fixed_camera", "mobile_camera"],
+    "淦琴":     ["fixed_camera"],
+    "禹豪":     ["fixed_camera"],
 }
 
 # 岗位显示名称
@@ -216,7 +216,7 @@ def stream():
 # ==================== 启动 ====================
 if __name__ == '__main__':
     import sys
-    port = 8080
+    port = 80
     if len(sys.argv) > 1:
         try:
             port = int(sys.argv[1])

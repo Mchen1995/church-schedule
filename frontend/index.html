@@ -32,7 +32,6 @@
         ::-webkit-scrollbar-track { background: transparent; }
         ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
     </style>
-<base target="_blank">
 </head>
 <body class="min-h-screen">
     <!-- 顶部导航 -->
@@ -60,13 +59,11 @@
             <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
                 <h2 class="font-bold text-gray-800 flex items-center gap-2">
                     <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
-                    各位同事积极报名~
+                    请各位大师积极报名
                 </h2>
-                <p class="text-sm text-gray-500 mt-1">请选择姓名后填报意向</p>
             </div>
 
             <form id="scheduleForm" class="p-5 space-y-5">
-                <!-- 姓名（下拉框 + 可手动输入） -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">姓名 <span class="text-red-500">*</span></label>
                     <div class="combo-box" id="nameCombo">
@@ -74,28 +71,23 @@
                             class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm">
                         <div class="dropdown" id="nameDropdown"></div>
                     </div>
-                    <p class="text-xs text-gray-400 mt-1">点击输入框查看名单，也可直接输入新名字</p>
                 </div>
 
-                <!-- 日期可用性 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2">
                         ↓ 以下是本月需要直播的场次 ↓ <span class="text-red-500">*</span>
                         <span class="text-xs font-normal text-gray-400 ml-1">默认不确定，请按需修改</span>
                     </label>
                     <div id="dateGrid" class="space-y-2.5">
-                        <!-- 动态生成 -->
                     </div>
                 </div>
 
-                <!-- 备注 -->
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1.5">备注</label>
                     <textarea id="notes" rows="2" placeholder="如有特殊情况请说明"
                         class="w-full px-3.5 py-2.5 rounded-xl border border-gray-200 focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none transition text-sm resize-none"></textarea>
                 </div>
 
-                <!-- 提交按钮 -->
                 <button type="submit" id="submitBtn"
                     class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-xl transition shadow-lg shadow-blue-200 active:scale-[0.98] flex items-center justify-center gap-2">
                     <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
@@ -119,12 +111,9 @@
             </div>
 
             <div class="p-5">
-                <!-- 汇总统计 -->
                 <div id="summaryCards" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5">
-                    <!-- 动态生成 -->
                 </div>
 
-                <!-- 详细表格 -->
                 <div class="overflow-x-auto -mx-2">
                     <table class="w-full text-sm">
                         <thead>
@@ -140,7 +129,6 @@
                             </tr>
                         </thead>
                         <tbody id="submissionsTable">
-                            <!-- 动态生成 -->
                         </tbody>
                     </table>
                 </div>
@@ -148,6 +136,36 @@
                 <div id="emptyState" class="hidden text-center py-10">
                     <div class="text-4xl mb-2">📋</div>
                     <p class="text-gray-400 text-sm">暂无人填报，你是第一个！</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- AI推荐排班 -->
+        <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden slide-in" style="animation-delay: 0.3s">
+            <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-indigo-50 to-purple-50 flex items-center justify-between">
+                <h2 class="font-bold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg>
+                    AI推荐排班
+                    <span id="rosterAttemptInfo" class="text-xs font-normal text-gray-400 ml-2 hidden"></span>
+                </h2>
+                <div class="flex items-center gap-2">
+                    <span id="rosterStats" class="text-xs text-gray-400 mr-2 hidden"></span>
+                    <button onclick="generateRoster()" id="rosterBtn" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1 px-3 py-1.5 rounded-lg hover:bg-indigo-50 transition">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                        <span id="rosterBtnText">重新生成</span>
+                    </button>
+                </div>
+            </div>
+            <div class="p-5">
+
+                <div id="rosterView" class="space-y-3">
+                    <div class="text-center py-8 text-gray-400">
+                        <div class="text-3xl mb-2">🤖</div>
+                        <p class="text-sm">点击下方按钮生成AI推荐排班</p>
+                        <button onclick="generateRoster()" class="mt-3 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm hover:bg-indigo-700 transition shadow-lg shadow-indigo-200">
+                            生成排班
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
@@ -162,36 +180,31 @@
             </div>
             <div class="p-5">
                 <div id="dateView" class="space-y-3">
-                    <!-- 动态生成 -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- Toast 通知容器 -->
     <div id="toastContainer" class="fixed top-20 right-4 z-50 space-y-2 pointer-events-none"></div>
 
     <script>
-    // ==================== 配置 ====================
     const API_BASE = window.location.origin.includes('localhost') || window.location.origin.includes('127.0.0.1')
         ? 'http://localhost:5000'
         : window.location.origin;
 
-    // ==================== 状态管理 ====================
     let config = { memberNames: [], memberRoles: {}, roleLabels: {}, scheduleDates: [] };
     let submissions = [];
-    let availability = {}; // { "2026-05-02": "yes" | "maybe" | "no" }
+    let availability = {};
     let eventSource = null;
+    let rosterGenerationCount = 0;
 
     const STATUS_LABELS = { yes: '可以来', maybe: '不确定', no: '不能来' };
     const STATUS_COLORS = { yes: 'text-green-700 bg-green-50 border-green-200', maybe: 'text-amber-700 bg-amber-50 border-amber-200', no: 'text-red-700 bg-red-50 border-red-200' };
     const STATUS_DOTS = { yes: '🟢', maybe: '🟡', no: '🔴' };
 
-    // ==================== 初始化 ====================
     document.addEventListener('DOMContentLoaded', async () => {
         await loadConfig();
         initNameCombo();
-        // 默认所有日期为 "maybe"
         config.scheduleDates.forEach(d => availability[d] = 'maybe');
         renderDateGrid();
         loadSubmissions();
@@ -199,7 +212,6 @@
         document.getElementById('scheduleForm').addEventListener('submit', handleSubmit);
     });
 
-    // ==================== 加载配置 ====================
     async function loadConfig() {
         try {
             const res = await fetch(`${API_BASE}/api/config`);
@@ -215,7 +227,6 @@
         }
     }
 
-    // ==================== 姓名下拉框 ====================
     function initNameCombo() {
         const input = document.getElementById('nameInput');
         const dropdown = document.getElementById('nameDropdown');
@@ -249,38 +260,37 @@
         }
     }
 
-    // ==================== 日期选择 ====================
     function renderDateGrid() {
-        const container = document.getElementById('dateGrid');
-        container.innerHTML = config.scheduleDates.map(date => {
-            const d = new Date(date + 'T00:00:00');
-            const dayStr = `${d.getMonth() + 1}月${d.getDate()}日`;
-            const dayName = '周' + ['日','一','二','三','四','五','六'][d.getDay()];
-            const current = availability[date] || '';
+    const container = document.getElementById('dateGrid');
+    container.innerHTML = config.scheduleDates.map(date => {
+        const d = new Date(date + 'T00:00:00');
+        const dayStr = `${d.getMonth() + 1}月${d.getDate()}日`;
+        const current = availability[date] || '';
 
-            return `
-                <div class="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-100 bg-gray-50/50">
-                    <div class="flex-shrink-0 w-20">
-                        <div class="font-bold text-gray-800">${dayStr}</div>
-                        <div class="text-xs text-gray-400">${dayName}</div>
-                    </div>
-                    <select onchange="setAvailability('${date}', this.value)"
-                        class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white ${current ? 'date-select-' + current : ''}">
-                        <option value="yes" ${current === 'yes' ? 'selected' : ''}>✓ 可以来</option>
-                        <option value="maybe" ${current === 'maybe' ? 'selected' : ''}>? 不确定</option>
-                        <option value="no" ${current === 'no' ? 'selected' : ''}>✗ 不能来</option>
-                    </select>
+        const isSpecial = (date === '2026-05-09');
+
+        return `
+            <div class="flex items-center gap-3 p-3 rounded-xl border-2 border-gray-100 bg-gray-50/50">
+                <div style="width:95px; flex-shrink:0; line-height:1.3;">
+                    <span class="font-bold text-gray-800" style="font-size:14px;">${dayStr}</span>
+                    ${isSpecial ? '<span style="color:#ef4444; font-weight:500; font-size:14px; white-space:nowrap;">圣餐</span>' : ''}
                 </div>
-            `;
-        }).join('');
-    }
+                <select onchange="setAvailability('${date}', this.value)"
+                    class="flex-1 px-3 py-2 rounded-lg border border-gray-200 text-sm focus:border-blue-500 focus:ring-2 focus:ring-blue-100 outline-none bg-white ${current ? 'date-select-' + current : ''}">
+                    <option value="yes" ${current === 'yes' ? 'selected' : ''}>✓ 可以来</option>
+                    <option value="maybe" ${current === 'maybe' ? 'selected' : ''}>? 不确定</option>
+                    <option value="no" ${current === 'no' ? 'selected' : ''}>✗ 不能来</option>
+                </select>
+            </div>
+        `;
+    }).join('');
+}
 
     function setAvailability(date, value) {
         availability[date] = value;
         renderDateGrid();
     }
 
-    // ==================== 表单提交 ====================
     async function handleSubmit(e) {
         e.preventDefault();
 
@@ -319,7 +329,6 @@
         }
     }
 
-    // ==================== 数据加载 ====================
     async function loadSubmissions() {
         try {
             const res = await fetch(`${API_BASE}/api/submissions`);
@@ -395,9 +404,9 @@
 
         const cards = [
             { label: '已填报人数', value: stats.total, color: 'bg-blue-500', icon: '👥' },
-            { label: '可导播', value: stats.director, color: 'bg-purple-500', icon: '🎛️' },
-            { label: '可固定机位', value: stats.fixed, color: 'bg-blue-500', icon: '📹' },
-            { label: '可移动机位', value: stats.mobile, color: 'bg-orange-500', icon: '🎥' }
+            { label: '可导', value: stats.director, color: 'bg-purple-500', icon: '🎛️' },
+            { label: '可拍', value: stats.fixed, color: 'bg-blue-500', icon: '📹' },
+            { label: '可游', value: stats.mobile, color: 'bg-orange-500', icon: '🎥' }
         ];
 
         container.innerHTML = cards.map(c => `
@@ -467,7 +476,6 @@
         }).join('');
     }
 
-    // ==================== 删除功能 ====================
     async function deleteSubmission(id, name) {
         if (!confirm(`确定要删除 ${name} 的填报记录吗？`)) return;
 
@@ -485,7 +493,6 @@
         }
     }
 
-    // ==================== SSE 实时同步 ====================
     function initSSE() {
         if (eventSource) eventSource.close();
 
@@ -521,7 +528,145 @@
         showToast('数据已刷新', 'success');
     }
 
-    // ==================== Toast 通知 ====================
+    async function generateRoster() {
+        const btn = document.getElementById('rosterBtn');
+        const btnText = document.getElementById('rosterBtnText');
+        const view = document.getElementById('rosterView');
+        const statsEl = document.getElementById('rosterStats');
+        const attemptInfo = document.getElementById('rosterAttemptInfo');
+
+        btn.disabled = true;
+        btnText.textContent = '生成中...';
+        view.innerHTML = `<div class="text-center py-8"><svg class="animate-spin w-8 h-8 mx-auto text-indigo-600" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg><p class="text-sm text-gray-500 mt-2">AI正在计算最优排班方案...</p><p class="text-xs text-gray-400 mt-1">尝试50次取最优</p></div>`;
+
+        try {
+            const res = await fetch(`${API_BASE}/api/roster`, { method: 'POST' });
+            const data = await res.json();
+
+            if (data.success) {
+                rosterGenerationCount++;
+                renderRoster(data.roster);
+
+                let yesCount = 0, maybeCount = 0;
+                Object.entries(data.roster).forEach(([date, info]) => {
+                    const allPeople = [info.director, info.mobileCamera, ...info.fixedCamera].filter(Boolean);
+                    allPeople.forEach(name => {
+                        const sub = submissions.find(s => s.name === name);
+                        if (sub && sub.availability[date] === 'yes') yesCount++;
+                        else if (sub && sub.availability[date] === 'maybe') maybeCount++;
+                    });
+                });
+                statsEl.textContent = `✅可选 ${yesCount}场 · ❓备选 ${maybeCount}场`;
+                statsEl.classList.remove('hidden');
+                attemptInfo.textContent = `(第${rosterGenerationCount}次生成)`;
+                attemptInfo.classList.remove('hidden');
+
+                showToast('排班生成成功！不满意可再次点击', 'success');
+            } else {
+                view.innerHTML = `<div class="text-center py-8 text-gray-400"><div class="text-3xl mb-2">⚠️</div><p class="text-sm">${data.error || '生成失败'}</p></div>`;
+                statsEl.classList.add('hidden');
+                attemptInfo.classList.add('hidden');
+                showToast(data.error || '生成失败', 'error');
+            }
+        } catch (e) {
+            view.innerHTML = `<div class="text-center py-8 text-gray-400"><div class="text-3xl mb-2">⚠️</div><p class="text-sm">网络错误</p></div>`;
+            statsEl.classList.add('hidden');
+            attemptInfo.classList.add('hidden');
+            showToast('网络错误', 'error');
+        } finally {
+            btn.disabled = false;
+            btnText.textContent = '重新生成';
+        }
+    }
+
+    function renderRoster(roster) {
+        const container = document.getElementById('rosterView');
+
+        container.innerHTML = Object.entries(roster).map(([date, info]) => {
+            const d = new Date(date + 'T00:00:00');
+            const dayStr = `${d.getMonth() + 1}月${d.getDate()}日`;
+            const dayName = '周' + ['日','一','二','三','四','五','六'][d.getDay()];
+
+            const renderPerson = (name) => {
+                if (!name) return '<span class="text-gray-300 italic">未安排</span>';
+
+                const sub = submissions.find(s => s.name === name);
+                let statusIcon = '';
+                let statusClass = '';
+                if (sub && sub.availability[date]) {
+                    if (sub.availability[date] === 'yes') {
+                        statusIcon = '✅';
+                    } else if (sub.availability[date] === 'maybe') {
+                        statusIcon = '❓';
+                        statusClass = 'border-dashed border-amber-300 bg-amber-50';
+                    }
+                }
+
+                return `<span class="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-white border border-gray-200 ${statusClass}">
+                    ${statusIcon} ${name}
+                </span>`;
+            };
+
+            const missingRoles = [];
+            if (!info.director) missingRoles.push('导');
+            if (!info.mobileCamera) missingRoles.push('移');
+            if (info.fixedCamera.length < 3) missingRoles.push(`固(缺${3 - info.fixedCamera.length}人)`);
+
+            return `
+                <div class="border border-gray-100 rounded-xl p-4 hover:shadow-sm transition">
+                    <div class="flex items-center gap-2 mb-3">
+                        <span class="font-bold text-gray-800 text-base">${dayStr}</span>
+                        <span class="text-xs text-gray-400">${dayName}</span>
+                        ${missingRoles.length > 0 ?
+                            `<span class="text-xs bg-red-100 text-red-600 px-2 py-0.5 rounded-full">⚠️ 缺: ${missingRoles.join('、')}</span>`
+                            : ''
+                        }
+                    </div>
+                    <div class="space-y-2.5 text-sm">
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500 w-12 flex-shrink-0">导:</span>
+                            ${renderPerson(info.director)}
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-gray-500 w-12 flex-shrink-0">移:</span>
+                            ${renderPerson(info.mobileCamera)}
+                        </div>
+                        <div class="flex items-start gap-2">
+                            <span class="text-gray-500 w-12 flex-shrink-0 pt-1">固:</span>
+                            <div class="flex flex-wrap gap-1">
+                                ${info.fixedCamera.length > 0
+                                    ? info.fixedCamera.map(n => renderPerson(n)).join('')
+                                    : '<span class="text-gray-300 italic">未安排</span>'}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }).join('');
+
+        const personCount = {};
+        Object.values(roster).forEach(info => {
+            [info.director, info.mobileCamera, ...info.fixedCamera].filter(Boolean).forEach(name => {
+                personCount[name] = (personCount[name] || 0) + 1;
+            });
+        });
+
+        const statsHtml = Object.entries(personCount)
+            .sort((a, b) => b[1] - a[1])
+            .map(([name, count]) => {
+                return `<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-white border border-gray-200">
+                    ${name}: <strong>${count}场</strong>
+                </span>`;
+            }).join(' ');
+
+        container.innerHTML += `
+            <div class="mt-4 pt-3 border-t border-gray-100">
+                <p class="text-xs text-gray-500 mb-2">📊 每人排班次数统计：</p>
+                <div class="flex flex-wrap gap-1.5">${statsHtml}</div>
+            </div>
+        `;
+    }
+
     function showToast(message, type = 'info') {
         const container = document.getElementById('toastContainer');
         const colors = { success: 'bg-green-500', error: 'bg-red-500', info: 'bg-blue-500' };

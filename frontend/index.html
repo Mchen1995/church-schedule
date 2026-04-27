@@ -31,7 +31,7 @@
         .status-dot-maybe { background: #eab308; color: white; }
         .status-dot-no { background: #ef4444; color: white; }
 
-        /* 排班下拉框样式 - 移动端优化 */
+        /* 排班下拉框样式 */
         .roster-select {
             background-color: white;
             border: 1px solid #e2e8f0;
@@ -60,8 +60,24 @@
         @media (min-width: 640px) { .fixed-cameras-container { flex-direction: row; flex-wrap: wrap; } }
         .fixed-cameras-container select { flex: 1; min-width: 100px; }
 
-        /* 表格在小屏上可滚动 */
-        .overflow-x-auto { -webkit-overflow-scrolling: touch; }
+        /* 表格紧凑样式 - 手机屏幕适配 */
+        .compact-table { width: 100%; table-layout: fixed; }
+        .compact-table th, .compact-table td { padding: 0.5rem 0.25rem; text-align: center; }
+        .compact-table th:first-child, .compact-table td:first-child { text-align: left; padding-left: 0.5rem; width: 70px; }
+        .compact-table th:last-child, .compact-table td:last-child { text-align: right; padding-right: 0.5rem; width: 50px; }
+        .compact-table .date-col { width: 44px; }
+
+        @media (max-width: 640px) {
+            .compact-table th, .compact-table td { padding: 0.375rem 0.125rem; font-size: 0.75rem; }
+            .compact-table th:first-child, .compact-table td:first-child { width: 60px; }
+            .status-dot { width: 24px; height: 24px; line-height: 24px; font-size: 12px; }
+        }
+
+        /* 警告样式 */
+        .warning-maybe { border-left: 3px solid #eab308 !important; background-color: #fefce8; }
+        .warning-no { border-left: 3px solid #ef4444 !important; background-color: #fef2f2; text-decoration: line-through; opacity: 0.7; }
+        .roster-select-warning { border-color: #eab308 !important; background-color: #fefce8; }
+        .roster-select-danger { border-color: #ef4444 !important; background-color: #fef2f2; text-decoration: line-through; }
     </style>
 </head>
 <body class="min-h-screen">
@@ -120,7 +136,7 @@
             </form>
         </div>
 
-        <!-- 实时结果看板 -->
+        <!-- 实时结果看板 - 紧凑表格 -->
         <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden slide-in">
             <div class="px-5 py-4 border-b border-gray-100 bg-gradient-to-r from-emerald-50 to-teal-50 flex items-center justify-between flex-wrap gap-2">
                 <h2 class="font-bold text-gray-800 flex items-center gap-2">
@@ -133,18 +149,18 @@
                     刷新
                 </button>
             </div>
-            <div class="p-5">
-                <div class="overflow-x-auto -mx-2">
-                    <table class="w-full text-sm min-w-[500px]">
+            <div class="p-3">
+                <div class="overflow-x-auto">
+                    <table class="compact-table">
                         <thead>
-                            <tr class="text-left text-gray-500 border-b border-gray-100">
-                                <th class="pb-3 pl-2 font-medium">姓名</th>
-                                <th class="pb-3 font-medium text-center">5/2</th>
-                                <th class="pb-3 font-medium text-center">5/9</th>
-                                <th class="pb-3 font-medium text-center">5/16</th>
-                                <th class="pb-3 font-medium text-center">5/23</th>
-                                <th class="pb-3 font-medium text-center">5/30</th>
-                                <th class="pb-3 pr-2 font-medium text-right">操作</th>
+                            <tr class="text-left text-gray-500 border-b border-gray-100 text-xs sm:text-sm">
+                                <th>姓名</th>
+                                <th class="date-col">5/2</th>
+                                <th class="date-col">5/9</th>
+                                <th class="date-col">5/16</th>
+                                <th class="date-col">5/23</th>
+                                <th class="date-col">5/30</th>
+                                <th>操作</th>
                             </tr>
                         </thead>
                         <tbody id="submissionsTable"></tbody>
@@ -300,14 +316,18 @@
         tbody.innerHTML = submissions.map((s, idx) => {
             const dateCells = config.scheduleDates.map(date => {
                 const status = s.availability[date] || '';
-                if (!status) return '<td class="py-3 text-center">-</td>';
+                if (!status) return '<td>-</td>';
                 let dotClass = '', dotText = '';
                 if (status === 'yes') { dotClass = 'status-dot-yes'; dotText = '✓'; }
                 else if (status === 'maybe') { dotClass = 'status-dot-maybe'; dotText = '?'; }
                 else if (status === 'no') { dotClass = 'status-dot-no'; dotText = '✗'; }
-                return `<td class="py-3 text-center"><span class="status-dot ${dotClass}">${dotText}</span></td>`;
+                return `<td><span class="status-dot ${dotClass}">${dotText}</span></td>`;
             }).join('');
-            return `<tr class="border-b border-gray-50 hover:bg-gray-50/50 transition slide-in"><td class="py-3 pl-2"><div class="font-medium text-gray-900">${s.name}</div></td>${dateCells}<td class="py-3 pr-2 text-right"><button onclick="deleteSubmission('${s.id}', '${s.name}')" class="text-red-400 hover:text-red-600 text-xs px-2 py-1 rounded hover:bg-red-50 transition">删除</button></td></tr>`;
+            return `<tr class="border-b border-gray-50 hover:bg-gray-50/50 transition slide-in">
+                <td class="font-medium text-gray-900 truncate max-w-[70px]">${s.name}</td>
+                ${dateCells}
+                <td><button onclick="deleteSubmission('${s.id}', '${s.name}')" class="text-red-400 hover:text-red-600 text-xs px-1 py-0.5 rounded hover:bg-red-50 transition">删</button></td>
+            </tr>`;
         }).join('');
     }
 
@@ -338,6 +358,16 @@
 
     function refreshData() { loadSubmissions(); showToast('数据已刷新', 'success'); }
 
+    // 获取某人在某日期的状态
+    function getPersonStatus(name, date) {
+        const submission = submissions.find(s => s.name === name);
+        if (submission && submission.availability[date]) {
+            return submission.availability[date];
+        }
+        return null;
+    }
+
+    // 检查重复人员
     function checkDuplicatePerson(date, role, value, currentInfo) {
         if (!value || value === '') return null;
 
@@ -390,12 +420,22 @@
         let yesCount = 0, maybeCount = 0;
         Object.entries(currentRosterData).forEach(([date, info]) => {
             [info.director, info.mobileCamera, ...(info.fixedCamera || [])].filter(Boolean).forEach(name => {
-                const sub = submissions.find(s => s.name === name);
-                if (sub && sub.availability[date] === 'yes') yesCount++;
-                else if (sub && sub.availability[date] === 'maybe') maybeCount++;
+                const status = getPersonStatus(name, date);
+                if (status === 'yes') yesCount++;
+                else if (status === 'maybe') maybeCount++;
             });
         });
         document.getElementById('rosterStats').textContent = `✅可选 ${yesCount}场 · ❓备选 ${maybeCount}场`;
+    }
+
+    // 获取选项HTML（带状态图标）
+    function getOptionWithStatus(person, date) {
+        const status = getPersonStatus(person, date);
+        let icon = '';
+        if (status === 'maybe') icon = '❓ ';
+        else if (status === 'no') icon = '⚠️ ';
+        else if (status === 'yes') icon = '✓ ';
+        return `<option value="${person}">${icon}${person}</option>`;
     }
 
     function renderEditableRoster(roster) {
@@ -404,11 +444,24 @@
 
         const allPeopleSet = new Set(config.memberNames);
         submissions.forEach(s => allPeopleSet.add(s.name));
-        const allPeopleOptions = Array.from(allPeopleSet).sort();
+        const allPeopleList = Array.from(allPeopleSet).sort();
 
         const makeSelect = (currentVal, roleType, dateKey) => {
-            const options = ['<option value="">-- 未安排 --</option>', ...allPeopleOptions.map(p => `<option value="${p}" ${currentVal === p ? 'selected' : ''}>${p}</option>`)];
-            return `<select data-date="${dateKey}" data-role="${roleType}" class="roster-select">${options.join('')}</select>`;
+            let options = ['<option value="">-- 未安排 --</option>'];
+            allPeopleList.forEach(person => {
+                const status = getPersonStatus(person, dateKey);
+                let icon = '';
+                if (status === 'maybe') icon = '❓ ';
+                else if (status === 'no') icon = '⚠️ ';
+                else if (status === 'yes') icon = '✓ ';
+                options.push(`<option value="${person}" ${currentVal === person ? 'selected' : ''}>${icon}${person}</option>`);
+            });
+            // 根据当前选中人的状态添加样式类
+            const currentStatus = currentVal ? getPersonStatus(currentVal, dateKey) : null;
+            let warningClass = '';
+            if (currentStatus === 'maybe') warningClass = 'roster-select-warning';
+            else if (currentStatus === 'no') warningClass = 'roster-select-danger';
+            return `<select data-date="${dateKey}" data-role="${roleType}" class="roster-select ${warningClass}">${options.join('')}</select>`;
         };
 
         container.innerHTML = Object.entries(roster).map(([date, info]) => {
@@ -420,7 +473,7 @@
             const fixedSelects = [];
             for (let i = 0; i < 3; i++) {
                 const currentFixed = info.fixedCamera && info.fixedCamera[i] ? info.fixedCamera[i] : '';
-                fixedSelects.push(makeSelect(currentFixed, `fixed_${i}`, dateKey));
+                fixedSelects.push(`<div class="flex-1 min-w-[100px]">${makeSelect(currentFixed, `fixed_${i}`, dateKey)}</div>`);
             }
 
             const missingRoles = [];
@@ -451,7 +504,7 @@
                         <div class="flex flex-col sm:flex-row sm:items-start gap-2 sm:gap-3">
                             <span class="text-gray-500 w-10">固定</span>
                             <div class="fixed-cameras-container">
-                                ${fixedSelects.map(select => `<div class="flex-1 min-w-[100px]">${select}</div>`).join('')}
+                                ${fixedSelects.join('')}
                             </div>
                         </div>
                     </div>
@@ -459,11 +512,16 @@
             `;
         }).join('');
 
+        // 绑定事件
         document.querySelectorAll('.roster-select').forEach(select => {
-            select.addEventListener('change', (e) => {
-                const date = select.dataset.date;
-                const roleKey = select.dataset.role;
-                const newValue = select.value;
+            // 移除旧事件避免重复绑定
+            const newSelect = select.cloneNode(true);
+            select.parentNode.replaceChild(newSelect, select);
+
+            newSelect.addEventListener('change', (e) => {
+                const date = newSelect.dataset.date;
+                const roleKey = newSelect.dataset.role;
+                const newValue = newSelect.value;
                 if (!currentRosterData[date]) return;
 
                 const currentInfo = JSON.parse(JSON.stringify(currentRosterData[date]));
@@ -477,10 +535,11 @@
                         const idx = parseInt(roleKey.split('_')[1]);
                         oldValue = (currentRosterData[date].fixedCamera && currentRosterData[date].fixedCamera[idx]) || '';
                     }
-                    select.value = oldValue;
+                    newSelect.value = oldValue;
                     return;
                 }
 
+                // 更新数据
                 if (roleKey === 'director') currentRosterData[date].director = newValue || null;
                 else if (roleKey === 'mobileCamera') currentRosterData[date].mobileCamera = newValue || null;
                 else if (roleKey.startsWith('fixed_')) {
@@ -491,6 +550,26 @@
                         while(currentRosterData[date].fixedCamera.length < 3) currentRosterData[date].fixedCamera.push(null);
                     }
                 }
+
+                // 更新下拉框样式（根据新人的状态）
+                const newStatus = newValue ? getPersonStatus(newValue, date) : null;
+                newSelect.classList.remove('roster-select-warning', 'roster-select-danger');
+                if (newStatus === 'maybe') newSelect.classList.add('roster-select-warning');
+                else if (newStatus === 'no') newSelect.classList.add('roster-select-danger');
+
+                // 重新生成选项文本（更新图标）
+                const currentVal = newValue;
+                const options = ['<option value="">-- 未安排 --</option>'];
+                const allPeople = Array.from(new Set([...config.memberNames, ...submissions.map(s => s.name)])).sort();
+                allPeople.forEach(person => {
+                    const status = getPersonStatus(person, date);
+                    let icon = '';
+                    if (status === 'maybe') icon = '❓ ';
+                    else if (status === 'no') icon = '⚠️ ';
+                    else if (status === 'yes') icon = '✓ ';
+                    options.push(`<option value="${person}" ${currentVal === person ? 'selected' : ''}>${icon}${person}</option>`);
+                });
+                newSelect.innerHTML = options.join('');
 
                 showToast(`已更新 ${date} 的排班`, 'info');
                 updateRosterStatusBadges(date);

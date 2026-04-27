@@ -594,7 +594,7 @@
         if (currentInfo.fixedCamera) {
             currentInfo.fixedCamera.forEach((cam, idx) => {
                 if (cam && cam !== '') {
-                    assignedPeople.push({name: cam, role: `固定机${idx + 1}`});
+                    assignedPeople.push({name: cam, role: `固定${idx + 1}`});
                 }
             });
         }
@@ -603,10 +603,10 @@
         let filtered = assignedPeople.filter(p => {
             if (role === 'director' && p.role === '导播') return false;
             if (role === 'mobileCamera' && p.role === '游机') return false;
-            if (role.startsWith('fixed_') && p.role.startsWith('固定机')) {
+            if (role.startsWith('fixed_') && p.role.startsWith('固定')) {
                 // 固定机位：只排除当前修改的这一个位置
                 const currentIdx = parseInt(role.split('_')[1]);
-                if (p.role === `固定机${currentIdx + 1}`) return false;
+                if (p.role === `固定${currentIdx + 1}`) return false;
             }
             return true;
         });
@@ -713,7 +713,7 @@
                         <div class="flex items-center gap-3 flex-wrap"><span class="text-gray-500 w-10">导播</span>${makeSelect(info.director || '', 'director')}</div>
                         <div class="flex items-center gap-3 flex-wrap"><span class="text-gray-500 w-10">游机</span>${makeSelect(info.mobileCamera || '', 'mobileCamera')}</div>
                         <div class="flex items-start gap-3 flex-wrap">
-                            <span class="text-gray-500 w-10 pt-1">固定机</span>
+                            <span class="text-gray-500 w-10 pt-1">固定</span>
                             <div class="fixed-cameras-container">${fixedSelects.join('')}</div>
                         </div>
                     </div>
